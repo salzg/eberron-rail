@@ -31,3 +31,48 @@ body {
     text-wrap: balance;
   }
 }
+
+/* styles.css */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  text-align: center;
+}
+
+label {
+  margin-right: 1rem;
+}
+
+select {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  background-color: #0070f3;
+  color: grey;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #005bb5;
+}
+
+h2 {
+  margin-top: 2rem;
+}
+
+select {
+  background-color: black;
+}
+
+input{
+  background-color: black;
+}
