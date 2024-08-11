@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { Route, RoutesData, TrainTime } from '@/types/types';
 import TinyQueue from 'tinyqueue';
-import { Console } from 'console';
 
 interface QueueNode {
     station: string;
@@ -36,7 +35,7 @@ export default function RouteFinderPage() {
               departure: TrainTime.fromString(route.departure),
               arrival: TrainTime.fromString(route.arrival),
             }));
-            setStations(data.stations);
+            setStations(data.stations.sort());
             setRoutes(parsedRoutes);
           } catch (error) {
             console.error('Error parsing JSON:', error);
@@ -51,12 +50,11 @@ export default function RouteFinderPage() {
           if(!route){
             console.log("No route found!")
           }
-          console.log(route);
           setOptimalRoute(route);
         }
       }, [start, end, startingTime]);
 
-    const findShortestRoute = (fromStation: string, toStation: string, startTime: TrainTime): Route[] | null => {
+      const findShortestRoute = (fromStation: string, toStation: string, startTime: TrainTime): Route[] | null => {
         const totalTimes: { [key: string]: number } = {};
         const previousStations: { [key: string]: Route[] } = {};
         const queue = new TinyQueue<QueueNode>([], (a, b) => a.distance - b.distance);
@@ -100,7 +98,7 @@ export default function RouteFinderPage() {
             }
       
             // Calculate the waiting time between arrival and the next departure
-            const waitTime = nextDepartureTime.compareTo(time); // This is in minutes
+            const waitTime = nextDepartureTime.compareTo(time) / 60; // Convert minutes to hours
       
             // Calculate the new arrival time with correct overhang
             const newArrivalTime = nextDepartureTime.addTime(new TrainTime(neighbor.duration, 0));
@@ -108,20 +106,33 @@ export default function RouteFinderPage() {
             // Calculate the total time spent (travel + waiting)
             const totalTime = distance + waitTime + neighbor.duration;
       
+            // Retrieve the last line used (if any) to reach the current station
+            const previousLine = route.length > 0 ? route[route.length - 1].line : null;
+      
+            // Check if this route is the best option to reach the neighbor station
             if (totalTime < totalTimes[neighbor.to]) {
               totalTimes[neighbor.to] = totalTime;
               const newRoute = [...route, { ...neighbor, departure: nextDepartureTime, arrival: newArrivalTime }];
               previousStations[neighbor.to] = newRoute;
               queue.push({ station: neighbor.to, distance: totalTime, route: newRoute, time: newArrivalTime });
+            } else if (totalTime === totalTimes[neighbor.to]) {
+              // If two routes have the same total time, prefer the one that stays on the same line
+              const currentOptimalRoute = previousStations[neighbor.to];
+              const currentOptimalLine = currentOptimalRoute.length > 0 ? currentOptimalRoute[currentOptimalRoute.length - 1].line : null;
+      
+              if (previousLine && previousLine === neighbor.line && currentOptimalLine !== neighbor.line) {
+                const newRoute = [...route, { ...neighbor, departure: nextDepartureTime, arrival: newArrivalTime }];
+                previousStations[neighbor.to] = newRoute;
+                queue.push({ station: neighbor.to, distance: totalTime, route: newRoute, time: newArrivalTime });
+              }
             }
           }
-    }
+        }
       
         console.log("No route found");
         return null;
       };
       
-
     return (
         <div>
           <h1>Route Finder</h1>
